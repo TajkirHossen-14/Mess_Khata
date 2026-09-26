@@ -1,25 +1,38 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
+import Layout from './components/layout/Layout'
+import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/auth/LoginPage'
+import RegisterPage from './pages/auth/RegisterPage'
+import ResidentDashboard from './pages/resident/Dashboard'
+import ManagerDashboard from './pages/manager/Dashboard'
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-ice-blue-50">
-        <nav className="bg-deep-navy-900 text-white p-4">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold font-heading">MessKhata</h1>
-            <div className="space-x-4">
-              <a href="/dashboard" className="hover:text-soft-blue-400">Dashboard</a>
-            </div>
-          </div>
-        </nav>
-        <main className="max-w-7xl mx-auto p-4">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<div>Dashboard</div>} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route element={<Layout />}>
+        <Route path="/resident/dashboard" element={<ResidentDashboard />} />
+        <Route path="/resident/meals" element={<div>Coming soon - Meals</div>} />
+        <Route path="/resident/expenses" element={<div>Coming soon - Expenses</div>} />
+        <Route path="/resident/bills" element={<div>Coming soon - Bills</div>} />
+        <Route path="/resident/payments" element={<div>Coming soon - Payments</div>} />
+        <Route path="/resident/duty" element={<div>Coming soon - Duty Roster</div>} />
+        <Route path="/resident/notices" element={<div>Coming soon - Notices</div>} />
+        <Route path="/resident/complaints" element={<div>Coming soon - Complaints</div>} />
+        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+        <Route path="/manager/residents" element={<div>Coming soon - Residents</div>} />
+        <Route path="/manager/expenses" element={<div>Coming soon - Expenses</div>} />
+        <Route path="/manager/billing" element={<div>Coming soon - Billing</div>} />
+        <Route path="/manager/collections" element={<div>Coming soon - Collections</div>} />
+        <Route path="/manager/assets" element={<div>Coming soon - Assets</div>} />
+        <Route path="/manager/duty" element={<div>Coming soon - Duty Roster</div>} />
+        <Route path="/manager/notices" element={<div>Coming soon - Notices</div>} />
+        <Route path="/manager/complaints" element={<div>Coming soon - Complaints</div>} />
+        <Route path="/manager/settings" element={<div>Coming soon - Settings</div>} />
+      </Route>
+    </Routes>
   )
 }
 
