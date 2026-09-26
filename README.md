@@ -1,4 +1,10 @@
-# MessKhata – Smart Mess Management Platform
+<div align='center'>
+
+# MessKhata 
+
+**Smart Mess Management Platform**
+
+</div>
 
 A MERN-stack web application for managing shared student mess operations including meal tracking, expense splitting, billing, payments, notices, complaints, and duty roster management.
 
