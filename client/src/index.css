@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-deep-navy-900: #0B1F3A;
+  --color-navy-800: #12345B;
+  --color-primary-blue-700: #2563A6;
+  --color-secondary-blue-600: #347FC1;
+  --color-soft-blue-400: #6EA8D8;
+  --color-sky-blue-300: #9CC8E8;
+  --color-ice-blue-100: #DCECF8;
+  --color-ice-blue-50: #F3F8FC;
+  --color-white: #ffffff;
+  --color-dark-text: #172B3F;
+  --color-secondary-text: #425B70;
+  --color-muted-text: #63778A;
+  --color-status-pending: #C99A3E;
+  --color-status-rejected: #A44747;
+  --color-status-success: #347FC1;
+
+  --font-heading: 'Sora', sans-serif;
+  --font-body: 'Inter', sans-serif;
+
+  --radius-card: 16px;
+  --radius-control: 12px;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    color: var(--color-dark-text);
+    background-color: var(--color-ice-blue-50);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    color: var(--color-deep-navy-900);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    background-color: var(--color-primary-blue-700);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-control);
+    font-weight: 500;
+    transition: background-color 0.2s;
+  }
+  .btn-primary:hover {
+    background-color: var(--color-secondary-blue-600);
+  }
+}
