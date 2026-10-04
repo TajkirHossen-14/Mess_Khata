@@ -1,35 +1,61 @@
-import { useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import RoleSwitch from './RoleSwitch';
 
 const residentItems = [
   { label: 'Dashboard', path: '/resident/dashboard' },
   { label: 'Meals', placeholder: true },
   { label: 'Expenses and bills', placeholder: true },
-  { label: 'Duty roster', placeholder: true },
+  { label: 'Duty roster', path: '/resident/dashboard' },
   { label: 'Notices', placeholder: true }
-]
+];
 
 const managerItems = [
   { label: 'Dashboard', path: '/manager/dashboard' },
   { label: 'Residents', placeholder: true },
   { label: 'Expenses and billing', placeholder: true },
-  { label: 'Duty roster', placeholder: true },
+  { label: 'Duty roster', path: '/manager/dashboard' },
   { label: 'Notices and complaints', placeholder: true }
-]
+];
 
 const guestItems = [
   { label: 'Home', path: '/' },
   { label: 'Login', path: '/login' },
   { label: 'Register', path: '/register' }
-]
+];
 
 export default function Layout() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const location = useLocation()
-  const isManager = location.pathname.startsWith('/manager')
-  const isResident = location.pathname.startsWith('/resident')
-  const role = isManager ? 'Manager' : isResident ? 'Resident' : 'Guest'
-  const items = isManager ? managerItems : isResident ? residentItems : guestItems
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const { user, activeRole, setActiveRole, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const roles = user?.roles || [];
+  const isDualRole = roles.length > 1;
+
+  const isManager = location.pathname.startsWith('/manager');
+  const isResident = location.pathname.startsWith('/resident');
+
+  let roleLabel = 'Guest';
+  if (isManager) roleLabel = 'Manager';
+  else if (isResident) roleLabel = 'Resident';
+
+  let items = guestItems;
+  if (roles.includes('manager') && activeRole === 'manager') {
+    items = managerItems;
+  } else if (roles.includes('resident') && activeRole === 'resident') {
+    items = residentItems;
+  } else if (roles.includes('manager')) {
+    items = managerItems;
+  } else if (roles.includes('resident')) {
+    items = residentItems;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-ice50 font-body text-darkText">
@@ -64,6 +90,19 @@ export default function Layout() {
             </span>
           ))}
         </nav>
+        {user && (
+          <div className="absolute bottom-0 left-0 right-0 border-t border-navy800 p-4">
+            <p className="text-sm text-sky300 truncate">{user.name}</p>
+            <p className="text-xs text-sky300/70 truncate">{user.email}</p>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-3 w-full rounded-control bg-navy800 px-3 py-2 text-sm text-white hover:bg-navy900"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </aside>
 
       <div className="min-h-screen lg:ml-64">
@@ -83,7 +122,8 @@ export default function Layout() {
             <h1 className="font-heading text-lg font-semibold text-navy900">MessKhata</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="rounded-control bg-ice100 px-3 py-1.5 text-sm font-medium text-blue700">{role}</span>
+            {isDualRole && <RoleSwitch activeRole={activeRole} onSwitch={setActiveRole} />}
+            <span className="rounded-control bg-ice100 px-3 py-1.5 text-sm font-medium text-blue700">{roleLabel}</span>
             <button
               type="button"
               aria-label="Notifications"
@@ -98,5 +138,5 @@ export default function Layout() {
         </main>
       </div>
     </div>
-  )
+  );
 }
