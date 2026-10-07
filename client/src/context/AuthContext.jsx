@@ -1,167 +1,140 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-const TOKEN_KEY = 'messkhata_token';
-const ACTIVE_ROLE_KEY = 'messkhata_active_role';
+export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('messkhata_token') || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeRole, setActiveRoleState] = useState(() => localStorage.getItem(ACTIVE_ROLE_KEY));
-
-  const resolveInitialRole = (roles) => {
-    if (!roles || roles.length === 0) return null;
-    const storedRole = localStorage.getItem(ACTIVE_ROLE_KEY);
-    if (storedRole && roles.includes(storedRole)) {
-      return storedRole;
-    }
-    // Default to manager if available, otherwise resident, otherwise first role
-    if (roles.includes('manager')) return 'manager';
-    if (roles.includes('resident')) return 'resident';
-    return roles[0];
-  };
+  const [activeRole, setActiveRoleState] = useState(localStorage.getItem('messkhata_active_role') || null);
+  const mountedRef = useRef(true);
 
   const setActiveRole = (role) => {
     setActiveRoleState(role);
-    if (role) {
-      localStorage.setItem(ACTIVE_ROLE_KEY, role);
-    } else {
-      localStorage.removeItem(ACTIVE_ROLE_KEY);
+    localStorage.setItem('messkhata_active_role', role);
+  };
+
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    setActiveRoleState(null);
+    localStorage.removeItem('messkhata_token');
+    localStorage.removeItem('messkhata_active_role');
+  };
+
+  const fetchMe = async (currentToken) => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${currentToken}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (mountedRef.current) {
+          setUser(data.data.user);
+          setIsAuthenticated(true);
+          if (!activeRole && data.data.user.roles.length > 0) {
+            const defaultRole = data.data.user.roles.includes('manager') ? 'manager' : 'resident';
+            setActiveRoleState(defaultRole);
+            localStorage.setItem('messkhata_active_role', defaultRole);
+          }
+        }
+      } else {
+        if (mountedRef.current) logout();
+      }
+    } catch (err) {
+      if (mountedRef.current) logout();
+    } finally {
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(ACTIVE_ROLE_KEY);
-    setToken(null);
-    setUser(null);
-    setActiveRoleState(null);
+  useEffect(() => {
+    mountedRef.current = true;
+    if (token) {
+      fetchMe(token);
+    } else {
+      setIsLoading(false);
+    }
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    const currentToken = localStorage.getItem(TOKEN_KEY);
-    if (!currentToken) {
-      setIsLoading(false);
-      return null;
-    }
-
-    try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${currentToken}`,
-        },
-      });
-
-      const result = await response.json();
-      if (response.ok && result.success && result.data) {
-        const { user: fetchedUser, token: refreshedToken } = result.data;
-        setUser(fetchedUser);
-        if (refreshedToken) {
-          localStorage.setItem(TOKEN_KEY, refreshedToken);
-          setToken(refreshedToken);
-        }
-        const assignedRole = resolveInitialRole(fetchedUser.roles);
-        setActiveRole(assignedRole);
-        return fetchedUser;
-      } else {
-        logout();
-        return null;
-      }
-    } catch {
-      logout();
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [logout]);
-
-  useEffect(() => {
-    refreshUser();
-  }, [refreshUser]);
-
   const login = async (email, password) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Invalid email or password');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToken(data.data.token);
+        localStorage.setItem('messkhata_token', data.data.token);
+        setUser(data.data.user);
+        setIsAuthenticated(true);
+        
+        let newActiveRole = activeRole;
+        if (data.data.user.roles.length > 0) {
+          newActiveRole = data.data.user.roles.includes('manager') ? 'manager' : 'resident';
+          setActiveRole(newActiveRole);
+          localStorage.setItem('messkhata_active_role', newActiveRole);
+        }
+        return { success: true, user: data.data.user };
+      }
+      return { success: false, message: data.message };
+    } catch {
+      return { success: false, message: 'Network error. Please try again later.' };
     }
-
-    const { token: receivedToken, user: loggedInUser } = result.data;
-    localStorage.setItem(TOKEN_KEY, receivedToken);
-    setToken(receivedToken);
-    setUser(loggedInUser);
-
-    const initialRole = resolveInitialRole(loggedInUser.roles);
-    setActiveRole(initialRole);
-
-    return loggedInUser;
   };
 
   const register = async (name, email, password) => {
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Registration failed');
-    }
-
-    const { token: receivedToken, user: registeredUser } = result.data;
-    localStorage.setItem(TOKEN_KEY, receivedToken);
-    setToken(receivedToken);
-    setUser(registeredUser);
-
-    const initialRole = resolveInitialRole(registeredUser.roles);
-    setActiveRole(initialRole);
-
-    return registeredUser;
-  };
-
-  const updateAuth = (newToken, updatedUser) => {
-    if (newToken) {
-      localStorage.setItem(TOKEN_KEY, newToken);
-      setToken(newToken);
-    }
-    if (updatedUser) {
-      setUser(updatedUser);
-      const initialRole = resolveInitialRole(updatedUser.roles);
-      setActiveRole(initialRole);
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setToken(data.data.token);
+        localStorage.setItem('messkhata_token', data.data.token);
+        setUser(data.data.user);
+        setIsAuthenticated(true);
+        return { success: true, user: data.data.user };
+      }
+      return { success: false, message: data.message };
+    } catch {
+      return { success: false, message: 'Network error. Please try again later.' };
     }
   };
 
-  const value = {
-    user,
-    token,
-    isAuthenticated: Boolean(token && user),
-    isLoading,
-    login,
-    register,
-    logout,
-    refreshUser,
-    updateAuth,
-    activeRole,
-    setActiveRole,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  const refreshUser = async () => {
+    if (token) await fetchMe(token);
   }
-  return context;
-}
 
-export default AuthContext;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        isLoading,
+        login,
+        register,
+        logout,
+        refreshUser,
+        activeRole,
+        setActiveRole
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
