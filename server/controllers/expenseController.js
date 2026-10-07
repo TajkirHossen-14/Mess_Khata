@@ -83,3 +83,49 @@ export const getExpenses = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Unable to retrieve expenses' });
   }
 };
+
+export const getFoodCostTotal = async (req, res, next) => {
+  try {
+    if (!req.messId) {
+      return badRequest(res, 'Mess context is required');
+    }
+
+    const { billingPeriodId } = req.query;
+    if (!billingPeriodId) {
+      return badRequest(res, 'billingPeriodId is required');
+    }
+    if (!mongoose.isValidObjectId(billingPeriodId)) {
+      return badRequest(res, 'Invalid billingPeriodId');
+    }
+
+    const billingPeriod = await BillingPeriod.findById(billingPeriodId).select('messId');
+    if (!billingPeriod || String(billingPeriod.messId) !== String(req.messId)) {
+      return badRequest(res, 'Billing period was not found for this mess');
+    }
+
+    const [result] = await Expense.aggregate([
+      {
+        $match: {
+          billingPeriodId: new mongoose.Types.ObjectId(billingPeriodId),
+          category: 'grocery',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        billingPeriodId,
+        totalFoodCost: result?.total ?? 0,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
