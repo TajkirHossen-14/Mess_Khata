@@ -1,7 +1,45 @@
 import mongoose from 'mongoose';
 import MealType from '../models/MealType.js';
-import { ensureDefaultMealTypes, toMealTypeDTO } from '../services/mealTypeService.js';
+import {
+  ensureDefaultMealTypes,
+  toMealTypeDTO,
+  getCurrentSchedule,
+  applySchedule,
+  SCHEDULE_PRESETS,
+} from '../services/mealTypeService.js';
 import HttpError from '../utils/HttpError.js';
+
+export const getSchedule = async (req, res, next) => {
+  try {
+    const current = await getCurrentSchedule(req.messId);
+    const presets = Object.entries(SCHEDULE_PRESETS).map(([key, preset]) => ({
+      key,
+      label: preset.label,
+      meals: preset.meals.map((m) => m.name),
+    }));
+    res.json({ success: true, data: { current, presets } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateSchedule = async (req, res, next) => {
+  try {
+    const { preset } = req.body;
+    await applySchedule(req.messId, preset);
+    const mealTypes = await MealType.find({ messId: req.messId }).sort({ time: 1 });
+    const current = await getCurrentSchedule(req.messId);
+    res.json({
+      success: true,
+      data: {
+        mealTypes: mealTypes.map(toMealTypeDTO),
+        current,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getMealTypes = async (req, res, next) => {
   try {
@@ -66,9 +104,6 @@ export const deleteMealType = async (req, res, next) => {
       throw new HttpError(404, 'Meal type not found');
     }
 
-    // A meal type referenced by any declaration or guest meal has history and
-    // can only be deactivated, never deleted. Those models may not exist yet,
-    // so check through mongoose.models.
     const hasDeclarations = mongoose.models.MealDeclaration
       ? await mongoose.models.MealDeclaration.exists({ mealTypeId })
       : false;
@@ -86,3 +121,4 @@ export const deleteMealType = async (req, res, next) => {
     next(err);
   }
 };
+

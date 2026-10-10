@@ -12,6 +12,7 @@ import StatusPill from '../components/StatusPill';
 export default function MealConfiguration() {
   const { token } = useAuth();
   const [mealTypes, setMealTypes] = useState([]);
+  const [schedule, setSchedule] = useState({ current: 'custom', presets: [] });
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -22,13 +23,20 @@ export default function MealConfiguration() {
   const [time, setTime] = useState('13:00');
   const [hoursBefore, setHoursBefore] = useState(4);
 
-  const fetchMealTypes = async () => {
+  // Schedule preset modal
+  const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState('');
+
+  const fetchMealData = async () => {
     try {
-      const res = await fetch('/api/meal-types', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) setMealTypes(data.data);
+      const [mtRes, schRes] = await Promise.all([
+        fetch('/api/meal-types', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/meal-types/schedule', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      const mtData = await mtRes.json();
+      const schData = await schRes.json();
+      if (mtData.success) setMealTypes(mtData.data);
+      if (schData.success) setSchedule(schData.data);
     } catch (err) {
       setToast({ type: 'error', message: 'Failed to load meal configuration.' });
     } finally {
@@ -37,7 +45,7 @@ export default function MealConfiguration() {
   };
 
   useEffect(() => {
-    fetchMealTypes();
+    fetchMealData();
   }, []);
 
   const openAddModal = () => {
@@ -71,7 +79,7 @@ export default function MealConfiguration() {
       const data = await res.json();
       if (data.success) {
         setIsModalOpen(false);
-        fetchMealTypes();
+        fetchMealData();
         setToast({ type: 'success', message: 'Meal type saved.' });
       } else {
         setToast({ type: 'error', message: data.message });
@@ -89,7 +97,7 @@ export default function MealConfiguration() {
       });
       const data = await res.json();
       if (data.success) {
-        fetchMealTypes();
+        fetchMealData();
         setToast({ type: 'success', message: 'Meal type deleted.' });
       } else {
         setToast({ type: 'error', message: data.message });
@@ -111,7 +119,30 @@ export default function MealConfiguration() {
       });
       const data = await res.json();
       if (data.success) {
-        fetchMealTypes();
+        fetchMealData();
+      } else {
+        setToast({ type: 'error', message: data.message });
+      }
+    } catch {
+      setToast({ type: 'error', message: 'Network error.' });
+    }
+  };
+
+  const confirmPreset = async () => {
+    try {
+      const res = await fetch('/api/meal-types/schedule', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ preset: selectedPreset })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsPresetModalOpen(false);
+        fetchMealData();
+        setToast({ type: 'success', message: 'Schedule updated.' });
       } else {
         setToast({ type: 'error', message: data.message });
       }
@@ -170,14 +201,29 @@ export default function MealConfiguration() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 mt-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
+      
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold font-heading text-darkText">Schedule</h2>
+          {schedule.current === 'custom' && <StatusPill status="info">Custom</StatusPill>}
         </div>
-        <p className="text-sm text-secondaryText">
-          Schedule options are configured here in a later step.
-        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {schedule.presets.map((preset) => (
+            <Card
+              key={preset.key}
+              className={`p-4 cursor-pointer border-2 transition-all ${schedule.current === preset.key ? 'border-blue700 bg-ice50' : 'border-transparent hover:border-sky300'}`}
+              onClick={() => {
+                if (schedule.current !== preset.key) {
+                  setSelectedPreset(preset.key);
+                  setIsPresetModalOpen(true);
+                }
+              }}
+            >
+              <h3 className="font-semibold text-darkText mb-2">{preset.label}</h3>
+              <p className="text-sm text-secondaryText">{preset.meals.join(', ')}</p>
+            </Card>
+          ))}
+        </div>
       </Card>
 
       <Card className="p-6">
@@ -192,12 +238,12 @@ export default function MealConfiguration() {
         <div className="space-y-4">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Breakfast" />
           <Input label="Serving Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          <Input
-            label="Declaration closes ___ hours before the meal"
-            type="number"
-            min="0" max="48"
-            value={hoursBefore}
-            onChange={(e) => setHoursBefore(e.target.value)}
+          <Input 
+            label="Declaration closes ___ hours before the meal" 
+            type="number" 
+            min="0" max="48" 
+            value={hoursBefore} 
+            onChange={(e) => setHoursBefore(e.target.value)} 
           />
           <p className="text-sm text-secondaryText italic">{previewCutoff()}</p>
           <div className="flex justify-end space-x-2 mt-4">
@@ -206,6 +252,15 @@ export default function MealConfiguration() {
           </div>
         </div>
       </Modal>
+
+      <Modal isOpen={isPresetModalOpen} onClose={() => setIsPresetModalOpen(false)} title="Change Schedule">
+        <p className="text-darkText mb-4">Meals outside this schedule will be deactivated. Existing declarations are not affected.</p>
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" onClick={() => setIsPresetModalOpen(false)}>Cancel</Button>
+          <Button variant="primary" onClick={confirmPreset}>Confirm</Button>
+        </div>
+      </Modal>
     </div>
   );
 }
+
