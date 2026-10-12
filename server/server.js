@@ -6,6 +6,7 @@ import { connectDB } from './config/db.js';
 import { protect } from './middleware/auth.js';
 import testRouter from './routes/test.js';
 import indexRouter from './routes/index.js';
+import devRouter from './routes/devRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { startReminderJobs } from './jobs/reminderScheduler.js';
 
@@ -21,6 +22,11 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/test', testRouter);
 app.use('/api', indexRouter);
+
+// TEMPORARY: dev-only helpers, never registered in production.
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/dev', devRouter);
+}
 
 app.use(errorHandler);
 
