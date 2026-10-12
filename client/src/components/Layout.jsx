@@ -5,7 +5,7 @@ import RoleSwitch from './RoleSwitch';
 
 const residentItems = [
   { label: 'Dashboard', path: '/resident/dashboard' },
-  { label: 'Meals', placeholder: true },
+  { label: 'Meals', path: '/resident/meals' },
   { label: 'Expenses and bills', placeholder: true },
   { label: 'Duty roster', path: '/resident/dashboard' },
   { label: 'Notices', placeholder: true }

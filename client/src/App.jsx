@@ -10,6 +10,7 @@ import ResidentDashboardPage from './pages/ResidentDashboardPage';
 import ManagerDashboardPage from './pages/ManagerDashboardPage';
 import Residents from './pages/Residents';
 import ManagerDutyAssignment from './pages/ManagerDutyAssignment';
+import MealDeclaration from './pages/MealDeclaration';
 
 function RequireMess({ children }) {
   const { user, isLoading } = useAuth();
@@ -33,6 +34,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['resident']}>
                   <ResidentDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="resident/meals"
+              element={
+                <ProtectedRoute allowedRoles={['resident']}>
+                  <MealDeclaration />
                 </ProtectedRoute>
               }
             />
