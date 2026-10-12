@@ -5,7 +5,7 @@ import RoleSwitch from './RoleSwitch';
 
 const residentItems = [
   { label: 'Dashboard', path: '/resident/dashboard' },
-  { label: 'Meals', placeholder: true },
+  { label: 'Meals', path: '/resident/meals' },
   { label: 'Expenses and bills', placeholder: true },
   { label: 'Duty roster', path: '/resident/dashboard' },
   { label: 'Notices', placeholder: true }
@@ -13,9 +13,9 @@ const residentItems = [
 
 const managerItems = [
   { label: 'Dashboard', path: '/manager/dashboard' },
-  { label: 'Residents', placeholder: true },
+  { label: 'Residents', path: '/manager/residents' },
   { label: 'Expenses and billing', placeholder: true },
-  { label: 'Duty roster', path: '/manager/dashboard' },
+  { label: 'Duty roster', path: '/manager/duty-assignments' },
   { label: 'Notices and complaints', placeholder: true }
 ];
 
