@@ -13,9 +13,9 @@ const residentItems = [
 
 const managerItems = [
   { label: 'Dashboard', path: '/manager/dashboard' },
-  { label: 'Residents', placeholder: true },
+  { label: 'Residents', path: '/manager/residents' },
   { label: 'Expenses and billing', placeholder: true },
-  { label: 'Duty roster', path: '/manager/dashboard' },
+  { label: 'Duty roster', path: '/manager/duty-assignments' },
   { label: 'Notices and complaints', placeholder: true }
 ];
 
