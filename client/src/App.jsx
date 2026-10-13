@@ -1,23 +1,34 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import OnboardingPage from './pages/OnboardingPage';
-import ProtectedRoute from './components/ProtectedRoute';
-import ResidentDashboardPage from './pages/ResidentDashboardPage';
-import ManagerDashboardPage from './pages/ManagerDashboardPage';
-import Residents from './pages/Residents';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Onboarding from './pages/Onboarding';
+import ResidentDashboard from './pages/ResidentDashboard';
+import ManagerDashboard from './pages/ManagerDashboard';
 import ManagerDutyAssignment from './pages/ManagerDutyAssignment';
+import MyDutySchedule from './pages/MyDutySchedule';
+import SubmitComplaint from './pages/SubmitComplaint';
+import MyComplaints from './pages/MyComplaints';
+import ComplaintReview from './pages/ComplaintReview';
 import MealDeclaration from './pages/MealDeclaration';
 import MealRecords from './pages/MealRecords';
 
-function RequireMess({ children }) {
-  const { user, isLoading } = useAuth();
-  if (isLoading) return null;
-  if (!user?.messId && !isLoading) return <Navigate to="/onboarding" replace />;
-  return children;
+/**
+ * Onboarding is only for members without a mess. Someone who already joined
+ * is sent to their own dashboard - always a different path, so this can never
+ * redirect back into itself.
+ */
+function OnboardingRoute() {
+  const { isLoading, isAuthenticated, user } = useAuth();
+  if (isLoading) return <p className="p-6 text-secondaryText">Loading your account...</p>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user && user.messId) {
+    const role = user.roles && user.roles.includes('manager') ? 'manager' : 'resident';
+    return <Navigate to={`/${role}/dashboard`} replace />;
+  }
+  return <Onboarding />;
 }
 
 function App() {

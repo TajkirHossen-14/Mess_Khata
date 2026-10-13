@@ -1,0 +1,5 @@
+import GuestMeal from '../models/GuestMeal.js'; import Resident from '../models/Resident.js'; import { toCalendarDate } from '../utils/dateTime.js';
+const countGuestMealsForResident = async (residentId, startStr, endStr) => { const [result] = await GuestMeal.aggregate([{ $match: { responsibleResidentId: residentId, date: { $gte: toCalendarDate(startStr), $lte: toCalendarDate(endStr) } } }, { $group: { _id: null, count: { $sum: '$count' } } }]); return result?.count ?? 0; };
+const countGuestMealsForMess = async (messId, startStr, endStr) => { const residents = await Resident.find({ messId }).select('_id'); const [result] = await GuestMeal.aggregate([{ $match: { responsibleResidentId: { $in: residents.map((r) => r._id) }, date: { $gte: toCalendarDate(startStr), $lte: toCalendarDate(endStr) } } }, { $group: { _id: null, count: { $sum: '$count' } } }]); return result?.count ?? 0; };
+const combineMealCounts = (own, guest) => ({ ownMealCount: own, guestMealCount: guest, totalMealCount: own + guest });
+export { countGuestMealsForResident, countGuestMealsForMess, combineMealCounts };
