@@ -10,13 +10,9 @@ const guestItems = [
 ];
 
 const managerItems = [
-  { label: 'Dashboard', href: '/manager/dashboard' },
-  { label: 'Duty Assignment', href: '/manager/duty' },
-  { label: 'Meal Configuration', href: '/manager/meal-config' },
-  { label: 'Residents', href: '/manager/residents' },
-  { label: 'Fixed Costs', href: '/manager/fixed-costs' },
-  { label: 'Meal Records', href: '/meal-records' },
-  { label: 'Complaints', href: '/manager/complaints' },
+  { label: 'Dashboard', path: '/manager/dashboard' },
+  { label: 'Residents', path: '/manager/residents' },
+  { label: 'Meal records', path: '/manager/meal-records' },
   { label: 'Expenses and billing', placeholder: true },
   { label: 'Notices', placeholder: true },
 ];
