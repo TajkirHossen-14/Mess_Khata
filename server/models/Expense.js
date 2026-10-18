@@ -8,7 +8,11 @@ const expenseSchema = new mongoose.Schema({
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
+    validate: {
+      validator: (value) => Number.isSafeInteger(value) && value > 0,
+      message: 'Amount must be a whole number of Taka greater than 0'
+    }
   },
   date: {
     type: Date,
