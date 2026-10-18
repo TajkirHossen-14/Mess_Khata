@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { protect } from '../middleware/auth.js';
 import expenseRoutes from './expenseRoutes.js';
+import recurringCostRoutes from './recurringCostRoutes.js';
+import billingPeriodRoutes from './billingPeriodRoutes.js';
+import fixedCostSharingRoutes from './fixedCostSharingRoutes.js';
 
 const router = Router();
 
@@ -11,5 +14,8 @@ router.get('/test-protected', protect, (req, res) => {
 
 // Future feature routers: auth, mess, residents, managers, expenses, billing, payments, notices, complaints, duties.
 router.use('/expenses', expenseRoutes);
+router.use('/recurring-costs', recurringCostRoutes);
+router.use('/billing-periods', billingPeriodRoutes);
+router.use('/fixed-cost-sharing', fixedCostSharingRoutes);
 
 export default router;
