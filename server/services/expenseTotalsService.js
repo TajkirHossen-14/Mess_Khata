@@ -1,0 +1,20 @@
+import mongoose from "mongoose";
+import Expense from "../models/Expense.js";
+import HttpError from "../utils/HttpError.js";
+export async function sumExpensesByCategory(billingPeriodId) {
+  if (!mongoose.isValidObjectId(billingPeriodId))
+    throw new HttpError(400, "Invalid billing period id");
+  const rows = await Expense.aggregate([
+    {
+      $match: { billingPeriodId: new mongoose.Types.ObjectId(billingPeriodId) },
+    },
+    { $group: { _id: "$category", total: { $sum: "$amount" } } },
+  ]);
+  const result = { grocery: 0, utility: 0, fixed: 0, asset: 0, other: 0 };
+  for (const row of rows) {
+    if (row._id in result) result[row._id] = row.total;
+  }
+  if (!Object.values(result).every(Number.isSafeInteger))
+    throw new HttpError(500, "Expense data contains non-whole-Taka amounts");
+  return result;
+}
