@@ -5,6 +5,9 @@ const complaintSchema = new mongoose.Schema({
   content: { type: String, required: true, trim: true },
   isAnonymous: { type: Boolean, default: false },
   status: { type: String, enum: ['open', 'in_review', 'resolved'], default: 'open' },
+  response: { type: String, default: '' },
+  respondedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Manager', default: null },
+  respondedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 export default mongoose.model('Complaint', complaintSchema);
