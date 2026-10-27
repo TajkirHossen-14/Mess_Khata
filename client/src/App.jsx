@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ResidentDashboardPage from './pages/ResidentDashboardPage';
 import ManagerDashboardPage from './pages/ManagerDashboardPage';
+import SharedAssetRegistrationPage from './pages/SharedAssetRegistrationPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="resident/dashboard" element={<ResidentDashboardPage />} />
           <Route path="manager/dashboard" element={<ManagerDashboardPage />} />
+          <Route path="manager/shared-assets/new" element={<SharedAssetRegistrationPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

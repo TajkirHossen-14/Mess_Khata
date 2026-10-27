@@ -11,6 +11,7 @@ const residentItems = [
 
 const managerItems = [
   { label: 'Dashboard', path: '/manager/dashboard' },
+  { label: 'Register shared asset', path: '/manager/shared-assets/new' },
   { label: 'Residents', placeholder: true },
   { label: 'Expenses and billing', placeholder: true },
   { label: 'Duty roster', placeholder: true },
