@@ -1,103 +1,219 @@
-import { useState } from 'react'
-import { Link, Outlet, useLocation } from 'react-router-dom'
 
-const residentItems = [
-  { label: 'Dashboard', path: '/resident/dashboard' },
-  { label: 'Meals', placeholder: true },
-  { label: 'Expenses and bills', placeholder: true },
-  { label: 'Duty roster', placeholder: true },
-  { label: 'Notices', placeholder: true }
-]
-
-const managerItems = [
-  { label: 'Dashboard', path: '/manager/dashboard' },
-  { label: 'Register shared asset', path: '/manager/shared-assets/new' },
-  { label: 'Residents', placeholder: true },
-  { label: 'Expenses and billing', placeholder: true },
-  { label: 'Duty roster', placeholder: true },
-  { label: 'Notices and complaints', placeholder: true }
-]
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import RoleSwitch from './RoleSwitch';
 
 const guestItems = [
-  { label: 'Home', path: '/' },
-  { label: 'Login', path: '/login' },
-  { label: 'Register', path: '/register' }
-]
+  { label: 'Home', href: '/' },
+  { label: 'Login', href: '/login' },
+  { label: 'Register', href: '/register' },
+];
+
+const managerItems = [
+  { label: 'Dashboard', href: '/manager/dashboard' },
+  { label: 'Register shared asset', href: '/manager/shared-assets/new' },
+  { label: 'Residents', href: '/manager/residents' },
+  { label: 'Meal records', href: '/manager/meal-records' },
+  { label: 'Meal configuration', href: '/manager/meal-configuration' },
+  { label: 'Duty assignments', href: '/manager/duty-assignments' },
+  { label: 'Review complaints', href: '/manager/complaints' },
+  { label: 'Expenses and billing', placeholder: true },
+  { label: 'Notices', placeholder: true },
+];
+
+const residentItems = [
+  { label: 'Dashboard', href: '/resident/dashboard' },
+  { label: 'Meal declaration', href: '/resident/meals' },
+  { label: 'Guest meals', href: '/resident/guest-meals' },
+  { label: 'Meal records', href: '/meal-records' },
+  { label: 'My duty schedule', href: '/resident/duty' },
+  { label: 'My complaints', href: '/resident/complaints' },
+  { label: 'Submit complaint', href: '/resident/complaints/new' },
+  { label: 'Expenses and bills', placeholder: true },
+  { label: 'Notices', placeholder: true },
+];
+
+function getMenuItems(user, activeRole) {
+  const roles = user?.roles || [];
+
+  if (!roles.length) return guestItems;
+
+  const role =
+    activeRole || (roles.includes('manager') ? 'manager' : 'resident');
+
+  if (role === 'manager' && roles.includes('manager')) {
+    return managerItems;
+  }
+
+  if (role === 'resident' && roles.includes('resident')) {
+    return residentItems;
+  }
+
+  return guestItems;
+}
+
+function getRoleLabel(user, activeRole) {
+  const roles = user?.roles || [];
+
+  if (!roles.length) return 'Guest';
+
+  const role =
+    activeRole || (roles.includes('manager') ? 'manager' : 'resident');
+
+  return role === 'manager' ? 'Manager' : 'Resident';
+}
 
 export default function Layout() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const location = useLocation()
-  const isManager = location.pathname.startsWith('/manager')
-  const isResident = location.pathname.startsWith('/resident')
-  const role = isManager ? 'Manager' : isResident ? 'Resident' : 'Guest'
-  const items = isManager ? managerItems : isResident ? residentItems : guestItems
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { user, activeRole, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const menuItems = getMenuItems(user, activeRole);
+
+  const handleLogout = () => {
+    setMenuOpen(false);
+    logout();
+    navigate('/');
+  };
 
   return (
-    <div className="min-h-screen bg-ice50 font-body text-darkText">
+    <div className="min-h-screen bg-ice50 font-body text-darkText md:flex">
       {menuOpen && (
         <button
           type="button"
           aria-label="Close navigation menu"
-          className="fixed inset-0 z-30 bg-navy900/40 lg:hidden"
+          className="fixed inset-0 z-30 bg-navy900/40 md:hidden"
           onClick={() => setMenuOpen(false)}
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-40 w-64 -translate-x-full bg-navy900 text-white transition-transform lg:translate-x-0 ${menuOpen ? 'translate-x-0' : ''}`}>
-        <div className="border-b border-navy800 px-6 py-5">
-          <Link to="/" className="font-heading text-xl font-bold" onClick={() => setMenuOpen(false)}>
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col bg-navy900 text-white transition-transform md:static md:translate-x-0 ${
+          menuOpen ? 'translate-x-0' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-navy800 px-6 py-5">
+          <NavLink
+            to="/"
+            className="font-heading text-xl font-bold"
+            onClick={() => setMenuOpen(false)}
+          >
             MessKhata
-          </Link>
+          </NavLink>
+
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            className="rounded-control p-1 text-sky300 hover:text-white md:hidden"
+            onClick={() => setMenuOpen(false)}
+          >
+            ✕
+          </button>
         </div>
-        <nav aria-label="Main navigation" className="space-y-1 p-4">
-          {items.map((item) => item.path ? (
-            <Link
-              key={item.label}
-              to={item.path}
-              onClick={() => setMenuOpen(false)}
-              className={`block rounded-control px-4 py-3 text-sm font-medium transition-colors ${location.pathname === item.path ? 'bg-ice100 text-navy900' : 'text-white hover:bg-navy800'}`}
-            >
-              {item.label}
-            </Link>
-          ) : (
-            <span key={item.label} className="block rounded-control px-4 py-3 text-sm text-sky300">
-              {item.label}
-            </span>
-          ))}
+
+        <nav
+          aria-label="Main navigation"
+          className="flex-1 space-y-1 overflow-y-auto px-4 py-4"
+        >
+          {menuItems.map((item) =>
+            item.placeholder ? (
+              <span
+                key={item.label}
+                className="block rounded-control px-4 py-3 text-sm text-sky300"
+              >
+                {item.label}
+              </span>
+            ) : (
+              <NavLink
+                key={item.label}
+                to={item.href}
+                end={item.href === '/'}
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) =>
+                  `block rounded-control px-4 py-3 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-white/10 text-white'
+                      : 'text-sky300 hover:bg-navy800 hover:text-white'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            )
+          )}
         </nav>
+
+        {user && (
+          <div className="border-t border-navy800 px-6 py-4">
+            <p className="truncate text-sm text-white">{user.name}</p>
+            <p className="truncate text-xs text-sky300">{user.email}</p>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-3 w-full rounded-control bg-navy800 px-3 py-2 text-sm font-medium text-white hover:bg-navy900"
+            >
+              Log out
+            </button>
+          </div>
+        )}
       </aside>
 
-      <div className="min-h-screen lg:ml-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-sky300 bg-ice50 px-4 sm:px-6">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-sky300 bg-ice50 px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="Open navigation menu"
               aria-expanded={menuOpen}
-              className="flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-control text-navy900 hover:bg-ice100 lg:hidden"
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-control text-navy900 hover:bg-ice100 md:hidden"
               onClick={() => setMenuOpen(true)}
             >
               <span className="h-0.5 w-5 bg-current" />
               <span className="h-0.5 w-5 bg-current" />
               <span className="h-0.5 w-5 bg-current" />
             </button>
-            <h1 className="font-heading text-lg font-semibold text-navy900">MessKhata</h1>
+
+            <span className="rounded-control bg-ice100 px-3 py-1.5 text-sm font-medium text-blue700">
+              {getRoleLabel(user, activeRole)}
+            </span>
           </div>
+
           <div className="flex items-center gap-3">
-            <span className="rounded-control bg-ice100 px-3 py-1.5 text-sm font-medium text-blue700">{role}</span>
+            {user && <RoleSwitch />}
+
             <button
               type="button"
+              className="relative p-2 text-navy900 hover:text-blue700"
               aria-label="Notifications"
-              className="grid h-10 w-10 place-items-center rounded-control text-navy900 hover:bg-ice100"
             >
-              <span aria-hidden="true">🔔</span>
+              <span
+                aria-hidden="true"
+                className="absolute right-1 top-1 h-2 w-2 rounded-full bg-statusError"
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 17h5l-1.405-1.405A2.03 2.03 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 00-2-2v0a2 2 0 00-2 2v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0H9"
+                />
+              </svg>
             </button>
           </div>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8">
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
     </div>
-  )
+  );
 }
