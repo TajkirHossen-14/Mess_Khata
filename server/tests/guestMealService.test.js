@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { combineMealCounts } from './guestMealService.js';
+import { combineMealCounts } from '../services/guestMealService.js';
 
 test('combineMealCounts reports guests separately and totals correctly', () => {
   const result = combineMealCounts(10, 5);

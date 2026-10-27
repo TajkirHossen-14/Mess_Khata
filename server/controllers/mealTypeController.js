@@ -121,4 +121,3 @@ export const deleteMealType = async (req, res, next) => {
     next(err);
   }
 };
-

@@ -34,4 +34,3 @@ mealTypeSchema.index(
 );
 
 export default mongoose.model('MealType', mealTypeSchema);
-

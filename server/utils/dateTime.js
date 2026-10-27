@@ -124,4 +124,3 @@ export function getCutoffClock(timeStr, hoursBefore) {
 
   return { time: `${hh}:${mm}`, dayOffset };
 }
-

@@ -9,15 +9,31 @@ const sharedAssetSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    validate: {
+      validator: (value) => typeof value === 'string' && value.trim().length > 0,
+      message: 'Asset name is required'
+    }
   },
   purchasePrice: {
     type: Number,
-    required: true
+    required: true,
+    min: [Number.MIN_VALUE, 'Purchase price must be a positive finite number'],
+    validate: Number.isFinite
+  },
+  purchaseDate: {
+    type: Date,
+    required: true,
+    validate: {
+      validator: (value) => value instanceof Date && Number.isFinite(value.getTime()),
+      message: 'Purchase date must be a valid date'
+    }
   },
   usefulLife: {
     type: Number,
-    required: true
+    required: true,
+    min: [Number.MIN_VALUE, 'Useful life must be a positive finite number'],
+    validate: Number.isFinite
   }
 }, {
   timestamps: true

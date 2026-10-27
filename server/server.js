@@ -2,12 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import { connectDB } from './config/db.js';
+import connectDB from './config/db.js';
 import { protect } from './middleware/auth.js';
 import testRouter from './routes/test.js';
 import indexRouter from './routes/index.js';
 import devRouter from './routes/devRoutes.js';
-import { errorHandler } from './middleware/errorHandler.js';
+import errorHandler from './middleware/errorHandler.js';
 import { startReminderJobs } from './jobs/reminderScheduler.js';
 
 const app = express();
