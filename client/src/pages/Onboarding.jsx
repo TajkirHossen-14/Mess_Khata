@@ -101,7 +101,7 @@ const Onboarding = () => {
           {activeTab === 'create' ? 'Create a Mess' : 'Join a Mess'}
         </h2>
         {error && <Toast message={error} type="error" onClose={() => setError('')} />}
-        
+
         {activeTab === 'create' ? (
           <form onSubmit={handleCreate} className="space-y-4">
             <Input
