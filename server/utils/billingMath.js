@@ -102,3 +102,12 @@ export function computeBalance({ subtotal, adjustments = [], payments = [] }) {
       outstanding > 0 ? "due" : outstanding === 0 ? "settled" : "credit",
   };
 }
+export function buildBillSnapshot({ row, adjustments = [], fixedCostPolicy, mealRate }) {
+  const lines = adjustments.map((a) => ({ adjustmentId: a._id || a.adjustmentId, amount: a.amount, reason: a.reason }));
+  const adjustmentsNet = lines.reduce((sum, a) => { integer(a.amount, 'Adjustment', false); return sum + a.amount; }, 0);
+  if (row.adjustmentsNet != null && row.adjustmentsNet !== adjustmentsNet) throw new HttpError(400, 'Adjustment lines do not equal adjustmentsNet');
+  ['mealCost', 'fixedCostShare'].forEach((key) => integer(row[key] || 0, key));
+  return { mealRate: mealRate ?? null, ownMealCount: row.ownMealCount || 0, guestMealCount: row.guestMealCount || 0, billableMeals: row.billableMeals || 0, mealCost: row.mealCost || 0, fixedCostShare: row.fixedCostShare || 0, fixedCostPolicy, adjustments: lines, adjustmentsNet, totalDue: (row.mealCost || 0) + (row.fixedCostShare || 0) + adjustmentsNet };
+}
+export function getBillPaymentStatus({ outstanding, confirmedPayments }) { return outstanding > 0 ? (confirmedPayments ? 'partial' : 'unpaid') : outstanding === 0 ? 'paid' : 'credit'; }
+export function evaluateBillingReadiness({ periodStatus, hasIssuedBills, residentCount, unallocatedFoodCost, warnings = [] }) { const blocking = []; const needsAcknowledgement = []; const add = (list, code, message) => list.push({ code, message }); if (periodStatus !== 'ended') add(blocking, 'PERIOD_NOT_ENDED', 'The billing period has not ended yet.'); if (hasIssuedBills) add(blocking, 'BILLS_ALREADY_GENERATED', 'Bills are already generated for this period.'); if (!residentCount) add(blocking, 'NO_RESIDENTS', 'No residents are eligible for this period.'); if (unallocatedFoodCost > 0) add(blocking, 'UNALLOCATED_FOOD_COST', 'Food costs cannot be allocated because no meals were recorded.'); if (warnings.includes('UNMATCHED_ADJUSTMENTS_OR_PAYMENTS')) add(blocking, 'UNMATCHED_ADJUSTMENTS_OR_PAYMENTS', 'There are unmatched adjustments or payments.'); if (warnings.includes('OTHER_EXPENSES_NOT_BILLED')) add(needsAcknowledgement, 'OTHER_EXPENSES_NOT_BILLED', 'Other expenses are not included in bills.'); if (warnings.includes('NO_MEALS_RECORDED')) add(needsAcknowledgement, 'NO_MEALS_RECORDED', 'No meals were recorded.'); return { canGenerate: !blocking.length, blocking, needsAcknowledgement }; }
