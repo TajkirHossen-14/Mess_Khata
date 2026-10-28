@@ -168,4 +168,53 @@ export const computeBalance = ({ subtotal, adjustments, payments }) => {
   return { adjustmentsNet, confirmedPayments, pendingPayments, outstanding, balanceStatus };
 };
 
+export const buildBillSnapshot = ({ row, adjustments = [], fixedCostPolicy, mealRate }) => {
+  const lines = adjustments.map((a) => ({ adjustmentId: a._id || a.adjustmentId, amount: a.amount, reason: a.reason }));
+  let adjustmentsNet = 0;
+  for (const line of lines) {
+    if (!isWholeTaka(line.amount)) throw invalidInput('Adjustment lines do not equal adjustmentsNet');
+    adjustmentsNet += line.amount;
+  }
+  if (row.adjustmentsNet != null && row.adjustmentsNet !== adjustmentsNet) {
+    throw invalidInput('Adjustment lines do not equal adjustmentsNet');
+  }
+  for (const key of ['mealCost', 'fixedCostShare']) {
+    const value = row[key] || 0;
+    if (!isWholeTaka(value) || value < 0) throw invalidInput(`${key} must be a non-negative whole number`);
+  }
+  return {
+    mealRate: mealRate ?? null,
+    ownMealCount: row.ownMealCount || 0,
+    guestMealCount: row.guestMealCount || 0,
+    billableMeals: row.billableMeals || 0,
+    mealCost: row.mealCost || 0,
+    fixedCostShare: row.fixedCostShare || 0,
+    fixedCostPolicy,
+    adjustments: lines,
+    adjustmentsNet,
+    totalDue: (row.mealCost || 0) + (row.fixedCostShare || 0) + adjustmentsNet,
+  };
+};
+
+export const getBillPaymentStatus = ({ outstanding, confirmedPayments }) =>
+  outstanding > 0
+    ? (confirmedPayments ? 'partial' : 'unpaid')
+    : outstanding === 0
+      ? 'paid'
+      : 'credit';
+
+export const evaluateBillingReadiness = ({ periodStatus, hasIssuedBills, residentCount, unallocatedFoodCost, warnings = [] }) => {
+  const blocking = [];
+  const needsAcknowledgement = [];
+  const add = (list, code, message) => list.push({ code, message });
+  if (periodStatus !== 'ended') add(blocking, 'PERIOD_NOT_ENDED', 'The billing period has not ended yet.');
+  if (hasIssuedBills) add(blocking, 'BILLS_ALREADY_GENERATED', 'Bills are already generated for this period.');
+  if (!residentCount) add(blocking, 'NO_RESIDENTS', 'No residents are eligible for this period.');
+  if (unallocatedFoodCost > 0) add(blocking, 'UNALLOCATED_FOOD_COST', 'Food costs cannot be allocated because no meals were recorded.');
+  if (warnings.includes('UNMATCHED_ADJUSTMENTS_OR_PAYMENTS')) add(blocking, 'UNMATCHED_ADJUSTMENTS_OR_PAYMENTS', 'There are unmatched adjustments or payments.');
+  if (warnings.includes('OTHER_EXPENSES_NOT_BILLED')) add(needsAcknowledgement, 'OTHER_EXPENSES_NOT_BILLED', 'Other expenses are not included in bills.');
+  if (warnings.includes('NO_MEALS_RECORDED')) add(needsAcknowledgement, 'NO_MEALS_RECORDED', 'No meals were recorded.');
+  return { canGenerate: !blocking.length, blocking, needsAcknowledgement };
+};
+
 export default { allocateMealCosts, combineCosts, computeBalance };
