@@ -1,0 +1,2 @@
+import express from 'express'; import { protect } from '../middleware/auth.js'; import { messScope } from '../middleware/messScope.js'; import { requireRole } from '../middleware/requireRole.js'; import { residentDashboard,managerDashboard } from '../controllers/dashboardController.js';
+const router=express.Router();router.use(protect,messScope);router.get('/resident',requireRole('resident'),residentDashboard);router.get('/manager',requireRole('manager'),managerDashboard);export default router;
