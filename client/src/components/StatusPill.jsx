@@ -21,4 +21,3 @@ const StatusPill = ({ status, children }) => {
 };
 
 export default StatusPill;
-

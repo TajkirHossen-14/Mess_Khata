@@ -163,4 +163,3 @@ describe('getCutoffClock', () => {
     assert.equal(result.dayOffset, -1);
   });
 });
-

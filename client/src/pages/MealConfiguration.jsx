@@ -201,7 +201,7 @@ export default function MealConfiguration() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 mt-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      
+
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold font-heading text-darkText">Schedule</h2>
@@ -238,12 +238,12 @@ export default function MealConfiguration() {
         <div className="space-y-4">
           <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Breakfast" />
           <Input label="Serving Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
-          <Input 
-            label="Declaration closes ___ hours before the meal" 
-            type="number" 
-            min="0" max="48" 
-            value={hoursBefore} 
-            onChange={(e) => setHoursBefore(e.target.value)} 
+          <Input
+            label="Declaration closes ___ hours before the meal"
+            type="number"
+            min="0" max="48"
+            value={hoursBefore}
+            onChange={(e) => setHoursBefore(e.target.value)}
           />
           <p className="text-sm text-secondaryText italic">{previewCutoff()}</p>
           <div className="flex justify-end space-x-2 mt-4">
@@ -263,4 +263,3 @@ export default function MealConfiguration() {
     </div>
   );
 }
-

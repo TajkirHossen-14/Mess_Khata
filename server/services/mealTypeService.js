@@ -123,4 +123,3 @@ export async function applySchedule(messId, presetKey) {
     { $set: { isActive: false } }
   );
 }
-

@@ -22,4 +22,3 @@ const Toggle = ({ checked, onChange, disabled, label }) => {
 };
 
 export default Toggle;
-

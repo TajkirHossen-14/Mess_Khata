@@ -25,4 +25,3 @@ router.patch('/:id', requireRole('manager'), updateMealType);
 router.delete('/:id', requireRole('manager'), deleteMealType);
 
 export default router;
-

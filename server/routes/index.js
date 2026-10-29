@@ -4,6 +4,8 @@ import expenseRoutes from './expenseRoutes.js';
 import recurringCostRoutes from './recurringCostRoutes.js';
 import billingPeriodRoutes from './billingPeriodRoutes.js';
 import fixedCostSharingRoutes from './fixedCostSharingRoutes.js';
+import sharedAssetRoutes from './sharedAssetRoutes.js';
+import paymentRoutes from './paymentRoutes.js';
 
 const router = Router();
 
@@ -17,5 +19,7 @@ router.use('/expenses', expenseRoutes);
 router.use('/recurring-costs', recurringCostRoutes);
 router.use('/billing-periods', billingPeriodRoutes);
 router.use('/fixed-cost-sharing', fixedCostSharingRoutes);
+router.use('/shared-assets', sharedAssetRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;
