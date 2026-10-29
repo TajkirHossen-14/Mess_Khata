@@ -1,13 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import express from 'express';
 import { submitPayment } from '../controllers/paymentController.js';
 import Payment from '../models/Payment.js';
 import BillingPeriod from '../models/BillingPeriod.js';
 import Resident from '../models/Resident.js';
+import paymentRoutes from '../routes/paymentRoutes.js';
+import { signToken } from '../utils/jwt.js';
 
 const ids = {
   billingPeriodId: '64b000000000000000000001',
   residentId: '64b000000000000000000002',
+  messId: '64b000000000000000000003',
+  userId: '64b000000000000000000004',
+  foreignBillingPeriodId: '64b000000000000000000005',
+  foreignMessId: '64b000000000000000000006',
+  spoofedResidentId: '64b000000000000000000007',
 };
 
 const paymentData = (overrides = {}) => ({
@@ -147,4 +155,141 @@ test('submission does not save for a foreign billing period or missing resident 
     assert.equal(response.payload.success, false);
     assert.equal(saved.length, 0);
   }
+});
+
+const withPaymentRoute = async (run) => {
+  const originals = {
+    findPeriod: BillingPeriod.findOne,
+    findResident: Resident.findOne,
+    createPayment: Payment.create,
+    jwtSecret: process.env.JWT_SECRET,
+  };
+  const saved = [];
+  const periodQueries = [];
+  const residentQueries = [];
+  const periods = [
+    { _id: ids.billingPeriodId, messId: ids.messId },
+    { _id: ids.foreignBillingPeriodId, messId: ids.foreignMessId },
+  ];
+  const residents = [
+    { _id: ids.residentId, userId: ids.userId, messId: ids.messId },
+  ];
+
+  BillingPeriod.findOne = (query) => {
+    periodQueries.push(query);
+    return {
+      select: async () => periods.find((period) =>
+        String(period._id) === String(query._id)
+        && String(period.messId) === String(query.messId)) ?? null,
+    };
+  };
+  Resident.findOne = async (query) => {
+    residentQueries.push(query);
+    return residents.find((resident) =>
+      String(resident.userId) === String(query.userId)
+      && String(resident.messId) === String(query.messId)) ?? null;
+  };
+  Payment.create = async (data) => {
+    saved.push({ ...data });
+    return { ...data };
+  };
+
+  process.env.JWT_SECRET = 'payment-submission-test-secret';
+  const app = express();
+  app.use(express.json());
+  app.use('/api/payments', paymentRoutes);
+  const server = app.listen(0, '127.0.0.1');
+
+  try {
+    await new Promise((resolve, reject) => {
+      server.once('listening', resolve);
+      server.once('error', reject);
+    });
+    const address = server.address();
+    const request = async ({ token, body } = {}) => {
+      const headers = { 'content-type': 'application/json' };
+      if (token) headers.authorization = `Bearer ${token}`;
+      const response = await fetch(`http://127.0.0.1:${address.port}/api/payments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body ?? {
+          amount: 2500,
+          method: 'cash',
+          billingPeriodId: ids.billingPeriodId,
+        }),
+      });
+      return { status: response.status, body: await response.json() };
+    };
+    const tokenFor = (roles, overrides = {}) => signToken({
+      id: ids.userId,
+      messId: ids.messId,
+      roles,
+      ...overrides,
+    });
+    await run({ request, tokenFor, saved, periodQueries, residentQueries });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    BillingPeriod.findOne = originals.findPeriod;
+    Resident.findOne = originals.findResident;
+    Payment.create = originals.createPayment;
+    if (originals.jwtSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originals.jwtSecret;
+  }
+};
+
+test('payment route rejects unauthenticated and non-resident requests', async () => {
+  await withPaymentRoute(async ({ request, tokenFor, saved }) => {
+    const unauthenticated = await request();
+    assert.equal(unauthenticated.status, 401);
+    assert.equal(unauthenticated.body.success, false);
+
+    const managerOnly = await request({ token: tokenFor(['manager']) });
+    assert.equal(managerOnly.status, 403);
+    assert.equal(managerOnly.body.success, false);
+    assert.equal(saved.length, 0);
+  });
+});
+
+test('authenticated resident reaches the mounted payment submission route', async () => {
+  await withPaymentRoute(async ({ request, tokenFor, saved }) => {
+    const result = await request({ token: tokenFor(['resident']) });
+    assert.equal(result.status, 201);
+    assert.equal(result.body.success, true);
+    assert.equal(result.body.data.status, 'pending');
+    assert.equal(saved.length, 1);
+  });
+});
+
+test('payment route enforces mess-scoped billing period and authenticated resident predicates', async () => {
+  await withPaymentRoute(async ({ request, tokenFor, saved, periodQueries, residentQueries }) => {
+    const valid = await request({
+      token: tokenFor(['resident']),
+      body: {
+        amount: 2500,
+        method: 'cash',
+        billingPeriodId: ids.billingPeriodId,
+        residentId: ids.spoofedResidentId,
+      },
+    });
+    assert.equal(valid.status, 201);
+    assert.equal(periodQueries[0]._id, ids.billingPeriodId);
+    assert.equal(periodQueries[0].messId, ids.messId);
+    assert.equal(residentQueries[0].userId, ids.userId);
+    assert.equal(residentQueries[0].messId, ids.messId);
+    assert.equal(String(saved[0].residentId), ids.residentId);
+    assert.notEqual(String(saved[0].residentId), ids.spoofedResidentId);
+
+    const foreignPeriod = await request({
+      token: tokenFor(['resident']),
+      body: {
+        amount: 2500,
+        method: 'cash',
+        billingPeriodId: ids.foreignBillingPeriodId,
+      },
+    });
+    assert.equal(foreignPeriod.status, 404);
+    assert.equal(foreignPeriod.body.success, false);
+    assert.equal(periodQueries[1].messId, ids.messId);
+    assert.equal(saved.length, 1);
+  });
 });
