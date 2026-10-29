@@ -205,6 +205,21 @@ export function calculateFixedCostSplit({
   return allocateLargestRemainder(normalizedTotalCost, weights, normalizedResidentIds);
 }
 
+export const splitFixedCosts = ({ total, residents }) => {
+  if (!Array.isArray(residents)) {
+    throw new FixedCostSplitValidationError('Residents must be provided as an array.');
+  }
+
+  const allocations = calculateFixedCostSplit({
+    totalCost: total,
+    residentIds: residents.map(({ id }) => id),
+    mode: 'per_seat',
+    seatCounts: Object.fromEntries(residents.map(({ id, weight }) => [String(id), weight])),
+  });
+
+  return allocations.map(({ residentId, amount }) => ({ residentId, share: amount }));
+};
+
 export const DEFAULT_EQUAL_POLICY = {
   mode: 'equal',
   seatCounts: {},
