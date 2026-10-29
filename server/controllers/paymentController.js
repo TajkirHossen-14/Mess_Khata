@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import BillingPeriod from '../models/BillingPeriod.js';
+import Manager from '../models/Manager.js';
 import Payment from '../models/Payment.js';
+import Resident from '../models/Resident.js';
 import { getResidentByUser } from '../services/membershipService.js';
 
 const badRequest = (res, message) => res.status(400).json({ success: false, message });
@@ -64,4 +66,73 @@ export const submitPayment = async (req, res) => {
   }
 };
 
-export default { submitPayment };
+const reviewPayment = async (req, res, status) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return badRequest(res, 'Invalid payment ID');
+    }
+
+    const manager = await Manager.findOne({
+      userId: req.user.id,
+      messId: req.messId,
+    }).select('_id');
+    if (!manager) {
+      return res.status(403).json({ success: false, message: 'Manager membership not found for this mess' });
+    }
+
+    const managerCount = await Manager.countDocuments({ messId: req.messId });
+    const payment = await Payment.findById(req.params.id);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    const billingPeriod = await BillingPeriod.findOne({
+      _id: payment.billingPeriodId,
+      messId: req.messId,
+    }).select('_id');
+    if (!billingPeriod) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    const resident = await Resident.findOne({
+      _id: payment.residentId,
+      messId: req.messId,
+    }).select('userId');
+    if (!resident) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    if (managerCount > 1 && String(resident.userId) === String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'Managers cannot review their own payment claims' });
+    }
+
+    const updatedPayment = await Payment.findOneAndUpdate(
+      {
+        _id: payment._id,
+        billingPeriodId: payment.billingPeriodId,
+        residentId: payment.residentId,
+        status: 'pending',
+      },
+      {
+        $set: {
+          status,
+          reviewedBy: manager._id,
+          reviewedAt: new Date(),
+        },
+      },
+      { new: true, runValidators: true }
+    );
+    if (!updatedPayment) {
+      return res.status(409).json({ success: false, message: 'Payment has already been processed' });
+    }
+
+    return res.status(200).json({ success: true, data: updatedPayment });
+  } catch {
+    return res.status(500).json({ success: false, message: 'Unable to review payment' });
+  }
+};
+
+export const confirmPayment = (req, res) => reviewPayment(req, res, 'confirmed');
+export const rejectPayment = (req, res) => reviewPayment(req, res, 'rejected');
+
+export default { submitPayment, confirmPayment, rejectPayment };

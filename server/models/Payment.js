@@ -38,6 +38,15 @@ const paymentSchema = new mongoose.Schema({
     default: 'pending',
     required: true,
   },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Manager',
+    default: null,
+  },
+  reviewedAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true,
 });
