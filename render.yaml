@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: messkhata-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: ENABLE_IN_PROCESS_CRON
+        sync: false
